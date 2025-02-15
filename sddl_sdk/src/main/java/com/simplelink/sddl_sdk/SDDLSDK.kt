@@ -2,12 +2,12 @@ package com.simplelink.sddl_sdk
 
 import android.content.ClipboardManager
 import android.content.Context
-import android.net.Uri
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.IOException
+import android.net.Uri
 
 object SDDLSDK {
 
@@ -16,16 +16,16 @@ object SDDLSDK {
         fun onError(error: String)
     }
 
-    fun fetchDetails(context: Context, data: Uri?, customScheme: String = "", callback: SDDLCallback) {
+    fun fetchDetails(context: Context, data: Uri? = null, customScheme: String = "", callback: SDDLCallback) {
         var id: String? = null
 
-        if (data != null && (customScheme.isEmpty() || data.scheme == customScheme)) {
-            id = data.host
-        } else {
+        if (data == null) {
             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-            if ((clipboard.hasPrimaryClip()) && (clipboard.primaryClip?.itemCount ?: 0) > 0) {
+            if (clipboard.hasPrimaryClip() && (clipboard.primaryClip?.itemCount ?: 0) > 0) {
                 id = clipboard.primaryClip?.getItemAt(0)?.coerceToText(context).toString()
             }
+        } else if (customScheme.isEmpty() || data.scheme == customScheme) {
+            id = data.host
         }
 
         if (id.isNullOrEmpty()) {
