@@ -38,17 +38,20 @@ In your `MainActivity.kt`:
 import com.simplelink.sddl_sdk.SDDLSDK
 
 // Call this method to fetch details
-SDDLSDK.fetchDetails(this, intent?.data) { result ->
-    when (result) {
-        is SDDLSDK.Success -> {
-            // Handle success
-            val data = result.data
+private fun fetchDetails(uri: Uri?) {
+    SDDLSDK.fetchDetails(this, uri, "", object : SDDLSDK.SDDLCallback {
+        override fun onSuccess(data: JsonObject) {
+            runOnUiThread {
+                logTextView.append("Success: $data\n")
+            }
         }
-        is SDDLSDK.Error -> {
-            // Handle error
-            val errorMessage = result.message
+
+        override fun onError(error: String) {
+            runOnUiThread {
+                logTextView.append("Error: $error\n")
+            }
         }
-    }
+    })
 }
 ```
 
