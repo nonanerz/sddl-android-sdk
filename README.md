@@ -23,11 +23,11 @@ In your app-level `build.gradle.kts`, add the dependency:
 
 ```kotlin
 dependencies {
-    implementation("com.github.nonanerz:sddl-android-sdk:1.0.0")
+    implementation("com.github.nonanerz:sddl-android-sdk:1.0.11")
 }
 ```
 
-> Replace `1.0.0` with the latest release version.
+> Replace `1.0.11` with the latest release version.
 
 ## Usage
 
@@ -35,31 +35,44 @@ dependencies {
 In your `MainActivity.kt`:
 
 ```kotlin
-import com.simplelink.sddl_sdk.SDDLSDK
+class MainActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
 
-// Call this method to fetch details
-private fun fetchDetails(uri: Uri?) {
-    SDDLSDK.fetchDetails(this, uri, "", object : SDDLSDK.SDDLCallback {
-        override fun onSuccess(data: JsonObject) {
-            runOnUiThread {
-                logTextView.append("Success: $data\n")
+        SDDLSDK.fetchDetails(this, null, "", object : SDDLSDK.SDDLCallback {
+            override fun onSuccess(data: JsonObject) {
+                Log.d("SDDLSDK", "Success: $data")
             }
-        }
 
-        override fun onError(error: String) {
-            runOnUiThread {
-                logTextView.append("Error: $error\n")
+            override fun onError(error: String) {
+                Log.e("SDDLSDK", "Error: $error")
             }
-        }
-    })
+        })
+    }
 }
 ```
 
+### Custom URI Scheme Support
+If you want to use a custom URI scheme, pass it as the third parameter to `fetchDetails`:
+
+```kotlin
+SDDLSDK.fetchDetails(this, null, "mycustomscheme", callback)
+```
+
 ### AndroidManifest.xml
-Add permissions to your `AndroidManifest.xml`:
+Add permissions and your custom scheme to your `AndroidManifest.xml`:
 
 ```xml
 <uses-permission android:name="android.permission.INTERNET" />
+
+<activity android:name=".MainActivity">
+    <intent-filter>
+        <action android:name="android.intent.action.VIEW" />
+        <category android:name="android.intent.category.DEFAULT" />
+        <category android:name="android.intent.category.BROWSABLE" />
+        <data android:scheme="mycustomscheme" />
+    </intent-filter>
+</activity>
 ```
 
 ## License
@@ -68,4 +81,3 @@ This SDK is licensed under the MIT License.
 ---
 
 For more details, visit [GitHub Repository](https://github.com/nonanerz/sddl-android-sdk).
-
