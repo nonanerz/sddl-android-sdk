@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.jetbrains.kotlin.android)
     id("maven-publish")
+    id("org.jetbrains.dokka") version "1.9.10"  // Dokka для Javadoc
 }
 
 android {
@@ -30,14 +31,16 @@ android {
     kotlinOptions {
         jvmTarget = "1.8"
     }
+}
 
-    // Додаємо components для публікації
-    publishing {
-        singleVariant("release") {
-            withSourcesJar()
-            withJavadocJar()
-        }
-    }
+tasks.register("sourcesJar", Jar::class) {
+    archiveClassifier.set("sources")
+    from(android.sourceSets.getByName("main").java.srcDirs)
+}
+
+tasks.register("dokkaJavadocJar", Jar::class) {
+    archiveClassifier.set("javadoc")
+    from(tasks.dokkaHtml)
 }
 
 dependencies {
@@ -54,15 +57,18 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
 }
 
-publishing {
-    publications {
-        create<MavenPublication>("release") {
-            afterEvaluate {
-                from(components["release"])
+afterEvaluate {
+    publishing {
+        publications {
+            create<MavenPublication>("release") {
+                groupId = "com.github.nonanerz"
+                artifactId = "sddl_sdk"
+                version = "1.0.0"
+
+                artifact("$buildDir/outputs/aar/sddl_sdk-release.aar")
+                artifact(tasks["sourcesJar"])
+                artifact(tasks["dokkaJavadocJar"])
             }
-            groupId = "com.github.nonanerz"
-            artifactId = "SDDLAndroidSDK"
-            version = "1.0.0"
         }
     }
 }
