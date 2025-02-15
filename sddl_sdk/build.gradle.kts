@@ -61,13 +61,11 @@ afterEvaluate {
     publishing {
         publications {
             create<MavenPublication>("release") {
+                from(components["release"]) // Використовуємо готовий компонент 'release'
+
                 groupId = "com.github.nonanerz"
                 artifactId = "sddl_sdk"
                 version = "1.0.0"
-
-                artifact("$buildDir/outputs/aar/sddl_sdk-release.aar")
-                artifact(tasks["sourcesJar"])
-                artifact(tasks["dokkaJavadocJar"])
             }
         }
     }
