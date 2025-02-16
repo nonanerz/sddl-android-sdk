@@ -68,7 +68,12 @@ class MainActivity : ComponentActivity() {
 If you want to use a custom URI scheme, pass it as the third parameter to `fetchDetails`:
 
 ```kotlin
-SDDLSDK.fetchDetails(this, null, "mycustomscheme", callback)
+SDDLSDK.fetchDetails(this, dataUri, "mycustomscheme", callback)
+```
+If you nothing passed to `fetchDetails` the clipboard will be used as the fallback:
+
+```kotlin
+SDDLSDK.fetchDetails(this, null, "", callback)
 ```
 
 ### AndroidManifest.xml
