@@ -35,11 +35,23 @@ dependencies {
 In your `MainActivity.kt`:
 
 ```kotlin
+package com.simplelink.android_test
+
+import android.net.Uri
+import android.os.Bundle
+import android.util.Log
+import androidx.activity.ComponentActivity
+import com.google.gson.JsonObject
+import com.simplelink.sddl_sdk.SDDLSDK
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        SDDLSDK.fetchDetails(this, null, "", object : SDDLSDK.SDDLCallback {
+        val dataUri: Uri? = intent?.data
+        Log.d("MainActivity", "Received URI: $dataUri")
+
+        SDDLSDK.fetchDetails(this, dataUri, "yourCustomScheme", object : SDDLSDK.SDDLCallback {
             override fun onSuccess(data: JsonObject) {
                 Log.d("SDDLSDK", "Success: $data")
             }
