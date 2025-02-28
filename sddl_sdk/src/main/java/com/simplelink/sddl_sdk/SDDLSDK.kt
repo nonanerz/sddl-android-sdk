@@ -28,11 +28,17 @@ object SDDLSDK {
             return
         }
 
-        proceedWithRequest(identifier, callback)
+        val queryParams = data.query ?: ""
+        proceedWithRequest(identifier, queryParams, callback)
     }
 
-    private fun proceedWithRequest(id: String, callback: SDDLCallback) {
-        val url = "https://sddl.me/api/$id/details"
+    private fun proceedWithRequest(id: String, queryParams: String, callback: SDDLCallback) {
+        // Додаємо query параметри до URL
+        var url = "https://sddl.me/api/$id/details"
+        if (queryParams.isNotEmpty()) {
+            url += "?$queryParams"
+        }
+
         val client = OkHttpClient()
         val request = Request.Builder().url(url).build()
 
