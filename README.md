@@ -54,7 +54,7 @@ Add the **App Link** configuration to your **AndroidManifest.xml**:
         <category android:name="android.intent.category.BROWSABLE" />
         <data
             android:scheme="https"
-            android:host="sddl.me"
+            android:host="{YOUR ID}.sddl.me"
             android:pathPrefix="/" />
     </intent-filter>
 
