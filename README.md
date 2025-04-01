@@ -23,11 +23,11 @@ In your app-level `build.gradle.kts`, add the dependency:
 
 ```kotlin
 dependencies {
-    implementation("com.github.nonanerz:sddl-android-sdk:1.0.11")
+    implementation("com.github.nonanerz:sddl-android-sdk:2.0.0")
 }
 ```
 
-> Replace `1.0.11` with the latest release version.
+> Replace `2.0.0` with the latest release version.
 
 ## Usage
 
