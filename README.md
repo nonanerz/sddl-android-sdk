@@ -144,5 +144,4 @@ Add permissions and your custom scheme to your `AndroidManifest.xml`:
 ## License
 This SDK is licensed under the MIT License.
 
-For more details, visit [GitHub Repository](https://github.com/nonanerz/sddl-android-sdk).
-
+Powered by [sddl.me](https://sddl.me) — deep linking API.
