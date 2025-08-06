@@ -97,4 +97,4 @@ This SDK is licensed under the MIT License.
 
 ---
 
-For more details, visit [GitHub Repository](https://github.com/nonanerz/sddl-android-sdk).
+Powered by [sddl.me](https://sddl.me) — backend-first deep linking API.
