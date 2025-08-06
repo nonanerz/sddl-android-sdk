@@ -27,59 +27,11 @@ In your app-level `build.gradle.kts`, add the dependency:
 
 ```kotlin
 dependencies {
-    implementation("com.github.nonanerz:sddl-android-sdk:1.1.1")
+    implementation("com.github.nonanerz:sddl-android-sdk:2.0.0")
 }
 ```
 
-> Replace `1.1.1` with the latest release version.
-
----
-
-## 📲 **App Links Setup**
-
-### 🔍 **1. Configure AndroidManifest.xml:**
-Add the **App Link** configuration to your **AndroidManifest.xml**:
-
-```xml
-<uses-permission android:name="android.permission.INTERNET" />
-
-<activity
-    android:name=".MainActivity"
-    android:exported="true"
-    android:launchMode="singleTop">
-
-    <intent-filter android:autoVerify="true">
-        <action android:name="android.intent.action.VIEW" />
-        <category android:name="android.intent.category.DEFAULT" />
-        <category android:name="android.intent.category.BROWSABLE" />
-        <data
-            android:scheme="https"
-            android:host="{YOUR ID}.sddl.me OR {your.custom.domain}"
-            android:pathPrefix="/" />
-    </intent-filter>
-
-    <intent-filter>
-        <action android:name="android.intent.action.MAIN" />
-        <category android:name="android.intent.category.LAUNCHER" />
-    </intent-filter>
-
-</activity>
-```
-
-> **Important:** Make sure to set `android:autoVerify="true"` to enable automatic verification of App Links. Without this, the links might open in a browser instead of your app.
-
----
-
-### 🌐 **2. Configure Digital Asset Links:**
-
-To properly link your app with **https://sddl.me**, you need to set up **assetlinks.json**.
-
-The **assetlinks.json** file is automatically generated via the SDDL interface. You cannot manually upload this file. Instead, follow these steps:
-
-1. **Log in** to [https://sddl.me](https://sddl.me).
-2. Navigate to the **App Links Configuration** section.
-3. Enter your app's **Package Name** and **SHA256 Certificate Fingerprints**.
-4. Save the configuration to automatically publish **assetlinks.json**.
+> Replace `2.0.0` with the latest release version.
 
 Example **assetlinks.json** content:
 
@@ -164,7 +116,32 @@ class MainActivity : ComponentActivity() {
 
 ---
 
-## 📄 **License**
+```kotlin
+SDDLSDK.fetchDetails(this, dataUri, "mycustomscheme", callback)
+```
+If you nothing passed to `fetchDetails` the clipboard will be used as the fallback:
+
+```kotlin
+SDDLSDK.fetchDetails(this, null, "", callback)
+```
+
+### AndroidManifest.xml
+Add permissions and your custom scheme to your `AndroidManifest.xml`:
+
+```xml
+<uses-permission android:name="android.permission.INTERNET" />
+
+<activity android:name=".MainActivity">
+<intent-filter>
+    <action android:name="android.intent.action.VIEW" />
+    <category android:name="android.intent.category.DEFAULT" />
+    <category android:name="android.intent.category.BROWSABLE" />
+    <data android:scheme="mycustomscheme" />
+</intent-filter>
+</activity>
+```
+
+## License
 This SDK is licensed under the MIT License.
 
 For more details, visit [GitHub Repository](https://github.com/nonanerz/sddl-android-sdk).
