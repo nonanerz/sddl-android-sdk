@@ -27,11 +27,11 @@ In your app-level `build.gradle.kts`, add the dependency:
 
 ```kotlin
 dependencies {
-    implementation("com.github.nonanerz:sddl-android-sdk:1.1.1")
+    implementation("com.github.nonanerz:sddl-android-sdk:2.0.0")
 }
 ```
 
-> Replace `1.1.1` with the latest release version.
+> Replace `2.0.0` with the latest release version.
 
 ---
 
@@ -121,7 +121,7 @@ Certificate fingerprints:
 ### **MainActivity.kt:**
 
 ```kotlin
-package com.simplelink.applink
+package com.simplelink.myapplication
 
 import android.content.Intent
 import android.net.Uri
@@ -146,15 +146,19 @@ class MainActivity : ComponentActivity() {
         val data: Uri? = intent.data
         if (data != null) {
             Log.d("AppLinkTest", "Received URL: ${data.toString()}")
-            SDDLSDK.fetchDetails(data, object : SDDLSDK.SDDLCallback {
-                override fun onSuccess(data: JsonObject) {
-                    Log.d("SDDLSDK", "Fetched Data: $data")
-                }
+            SDDLSDK.fetchDetails(
+                context = this,
+                data = data,
+                callback = object : SDDLSDK.SDDLCallback {
+                    override fun onSuccess(data: JsonObject) {
+                        Log.d("SDDLSDK", "Fetched Data: $data")
+                    }
 
-                override fun onError(error: String) {
-                    Log.e("SDDLSDK", "Error: $error")
+                    override fun onError(error: String) {
+                        Log.e("SDDLSDK", "Error: $error")
+                    }
                 }
-            })
+            )
         } else {
             Log.d("AppLinkTest", "No URL received")
         }
