@@ -65,7 +65,7 @@ afterEvaluate {
 
                 groupId = "com.github.nonanerz"
                 artifactId = "sddl_sdk"
-                version = "1.0.0"
+                version = "2.0.2"
             }
         }
     }
