@@ -18,8 +18,8 @@ object SDDLSDK {
         fun onError(error: String)
     }
 
-    fun fetchDetails(context: Context, data: Uri? = null, customScheme: String = "", callback: SDDLCallback) {
-        val identifier = extractIdentifier(context, data, customScheme)
+    fun fetchDetails(context: Context, data: Uri? = null, callback: SDDLCallback) {
+        val identifier = extractIdentifier(context, data)
         if (identifier != null) {
             proceedWithRequest(identifier, callback)
         } else {
@@ -27,13 +27,28 @@ object SDDLSDK {
         }
     }
 
-    private fun extractIdentifier(context: Context, data: Uri?, customScheme: String): String? {
-        if (data != null && (customScheme.isEmpty() || data.scheme == customScheme)) {
-            data.host?.trim('/')?.let { if (it.isNotEmpty()) return it }
-        }
+    private fun extractIdentifier(context: Context, data: Uri?): String? {
+        val firstSegment = data
+            ?.pathSegments
+            ?.firstOrNull()
+            ?.takeIf { segment ->
+                segment.length in 4..64 &&
+                        segment.matches(Regex("^[a-zA-Z0-9_-]+$"))
+            }
+        if (firstSegment != null) return firstSegment
+
         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        val clip = clipboard.primaryClip?.getItemAt(0)?.coerceToText(context)?.toString()?.trim().orEmpty()
-        return if (clip.length in 4..64 && clip.matches(Regex("^[a-zA-Z0-9_-]+$"))) clip else null
+        val clip = clipboard.primaryClip
+            ?.getItemAt(0)
+            ?.coerceToText(context)
+            ?.toString()
+            ?.trim()
+            .orEmpty()
+
+        return clip.takeIf { c ->
+            c.length in 4..64 &&
+                    c.matches(Regex("^[a-zA-Z0-9_-]+$"))
+        }
     }
 
     private fun fetchTryDetails(callback: SDDLCallback) {
