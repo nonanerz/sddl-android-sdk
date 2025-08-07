@@ -37,7 +37,8 @@ object SDDLSDK {
             }
         if (firstSegment != null) return firstSegment
 
-        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+            ?: return null
         val clip = clipboard.primaryClip
             ?.getItemAt(0)
             ?.coerceToText(context)
