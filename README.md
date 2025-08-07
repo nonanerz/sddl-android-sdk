@@ -27,7 +27,7 @@ In your app-level `build.gradle.kts`, add the dependency:
 
 ```kotlin
 dependencies {
-    implementation("com.github.nonanerz:sddl-android-sdk:v2.0.2")
+    implementation("com.github.nonanerz:sddl-android-sdk:2.0.2")
 }
 ```
 
