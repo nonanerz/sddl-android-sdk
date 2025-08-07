@@ -19,50 +19,49 @@ object SDDLSDK {
     }
 
     fun fetchDetails(context: Context, data: Uri? = null, customScheme: String = "", callback: SDDLCallback) {
-        val tryDetailsUrl = "https://sddl.me/api/try/details"
+        val identifier = extractIdentifier(context, data, customScheme)
+        if (identifier != null) {
+            proceedWithRequest(identifier, callback)
+        } else {
+            fetchTryDetails(callback)
+        }
+    }
+
+    private fun extractIdentifier(context: Context, data: Uri?, customScheme: String): String? {
+        if (data != null && (customScheme.isEmpty() || data.scheme == customScheme)) {
+            data.host?.trim('/')?.let { if (it.isNotEmpty()) return it }
+        }
+        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val clip = clipboard.primaryClip?.getItemAt(0)?.coerceToText(context)?.toString()?.trim().orEmpty()
+        return if (clip.length in 4..64 && clip.matches(Regex("^[a-zA-Z0-9_-]+$"))) clip else null
+    }
+
+    private fun fetchTryDetails(callback: SDDLCallback) {
+        val tryUrl = "https://sddl.me/api/try/details"
         val client = OkHttpClient()
-        val requestTry = Request.Builder().url(tryDetailsUrl).build()
+        val request = Request.Builder().url(tryUrl).build()
 
         Thread {
             try {
-                client.newCall(requestTry).execute().use { response ->
-                    if (response.code == 200) {
-                        val responseBody = response.body?.string().orEmpty()
-                        val jsonData = JsonParser.parseString(responseBody).asJsonObject
+                client.newCall(request).execute().use { response ->
+                    if (response.isSuccessful) {
+                        val body = response.body?.string().orEmpty()
+                        val json = JsonParser.parseString(body).asJsonObject
                         Handler(Looper.getMainLooper()).post {
-                            callback.onSuccess(jsonData)
+                            callback.onSuccess(json)
                         }
                     } else {
-                        fallbackFetchDetails(context, data, customScheme, callback)
+                        Handler(Looper.getMainLooper()).post {
+                            callback.onError("Try/details failed: ${response.code}")
+                        }
                     }
                 }
             } catch (e: IOException) {
-                fallbackFetchDetails(context, data, customScheme, callback)
+                Handler(Looper.getMainLooper()).post {
+                    callback.onError("Network error: ${e.message}")
+                }
             }
         }.start()
-    }
-
-    private fun fallbackFetchDetails(context: Context, data: Uri?, customScheme: String, callback: SDDLCallback) {
-        var identifier: String? = null
-
-        if (data != null && (customScheme.isEmpty() || data.scheme == customScheme)) {
-            identifier = data.host?.trim('/')
-        }
-
-        if (identifier.isNullOrEmpty()) {
-            Handler(Looper.getMainLooper()).postDelayed({
-                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                val localId = clipboard.primaryClip?.getItemAt(0)?.coerceToText(context)?.toString()?.trim() ?: ""
-
-                if (localId.isNotEmpty() && localId.length in 4..64 && localId.matches(Regex("^[a-zA-Z0-9_-]+$"))) {
-                    proceedWithRequest(localId, callback)
-                } else {
-                    callback.onError("No valid identifier found")
-                }
-            }, 300)
-        } else {
-            proceedWithRequest(identifier, callback)
-        }
     }
 
     private fun proceedWithRequest(id: String, callback: SDDLCallback) {
@@ -73,25 +72,23 @@ object SDDLSDK {
         Thread {
             try {
                 client.newCall(request).execute().use { response ->
-                    if (!response.isSuccessful) {
-                        postError(callback, "Request failed: ${response.message}")
-                        return@use
-                    }
-                    val responseBody = response.body?.string().orEmpty()
-                    val jsonData = JsonParser.parseString(responseBody).asJsonObject
-                    Handler(Looper.getMainLooper()).post {
-                        callback.onSuccess(jsonData)
+                    if (response.isSuccessful) {
+                        val body = response.body?.string().orEmpty()
+                        val json = JsonParser.parseString(body).asJsonObject
+                        Handler(Looper.getMainLooper()).post {
+                            callback.onSuccess(json)
+                        }
+                    } else {
+                        Handler(Looper.getMainLooper()).post {
+                            fetchTryDetails(callback)
+                        }
                     }
                 }
             } catch (e: IOException) {
-                postError(callback, "Network error: ${e.message}")
+                Handler(Looper.getMainLooper()).post {
+                    callback.onError("Network error: ${e.message}")
+                }
             }
         }.start()
-    }
-
-    private fun postError(callback: SDDLCallback, message: String) {
-        Handler(Looper.getMainLooper()).post {
-            callback.onError(message)
-        }
     }
 }
