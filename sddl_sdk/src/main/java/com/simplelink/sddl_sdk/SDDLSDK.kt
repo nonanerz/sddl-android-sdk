@@ -38,14 +38,15 @@ object SDDLSDK {
         if (firstSegment != null) return firstSegment
 
         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        val clip = clipboard.primaryClip
+
+        val clipText = clipboard.primaryClip
+            ?.takeIf { it.itemCount > 0 }
             ?.getItemAt(0)
             ?.coerceToText(context)
             ?.toString()
             ?.trim()
-            .orEmpty()
 
-        return clip.takeIf { c ->
+        return clipText?.takeIf { c ->
             c.length in 4..64 &&
                     c.matches(Regex("^[a-zA-Z0-9_-]+$"))
         }
