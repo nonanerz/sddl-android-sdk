@@ -9,7 +9,9 @@ import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.Response
 import java.io.IOException
+import java.util.concurrent.TimeUnit
 
 object SDDLSDK {
 
@@ -18,93 +20,113 @@ object SDDLSDK {
         fun onError(error: String)
     }
 
+    @Volatile
+    private var resolving: Boolean = false
+
+    private val mainHandler = Handler(Looper.getMainLooper())
+
+    private val client: OkHttpClient by lazy {
+        OkHttpClient.Builder()
+            .callTimeout(5, TimeUnit.SECONDS)
+            .connectTimeout(5, TimeUnit.SECONDS)
+            .readTimeout(5, TimeUnit.SECONDS)
+            .writeTimeout(5, TimeUnit.SECONDS)
+            .build()
+    }
+
     fun fetchDetails(context: Context, data: Uri? = null, callback: SDDLCallback) {
-        val identifier = extractIdentifier(context, data)
-        if (identifier != null) {
-            proceedWithRequest(identifier, callback)
+        synchronized(this) {
+            if (resolving) return
+            resolving = true
+        }
+
+        val id = extractIdentifier(context, data)
+        if (id != null) {
+            getDetailsAsync(id, callback)
         } else {
-            fetchTryDetails(callback)
+            getTryDetailsAsync(callback)
         }
     }
 
     private fun extractIdentifier(context: Context, data: Uri?): String? {
-        val firstSegment = data
+        val fromUrl = data
             ?.pathSegments
             ?.firstOrNull()
-            ?.takeIf { segment ->
-                segment.length in 4..64 &&
-                        segment.matches(Regex("^[a-zA-Z0-9_-]+$"))
-            }
-        if (firstSegment != null) return firstSegment
+            ?.takeIf { isValidId(it) }
+        if (fromUrl != null) return fromUrl
 
-        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
 
-        val clipText = clipboard.primaryClip
-            ?.takeIf { it.itemCount > 0 }
+        val clipText = cm.primaryClip?.takeIf { it.itemCount > 0 }
             ?.getItemAt(0)
             ?.coerceToText(context)
             ?.toString()
             ?.trim()
 
-        return clipText?.takeIf { c ->
-            c.length in 4..64 &&
-                    c.matches(Regex("^[a-zA-Z0-9_-]+$"))
+        return clipText?.takeIf { isValidId(it) }
+    }
+
+    private fun isValidId(s: String): Boolean {
+        return s.length in 4..64 && s.matches(Regex("^[A-Za-z0-9_-]+$"))
+    }
+
+    private fun getDetailsAsync(id: String, callback: SDDLCallback) {
+        Thread {
+            try {
+                val url = "https://sddl.me/api/$id/details"
+                val req = Request.Builder().url(url).build()
+                client.newCall(req).execute().use { r ->
+                    when {
+                        r.isSuccessful -> success(r, callback)
+                        r.code == 404 || r.code == 410 -> getTryDetailsSync(callback)
+                        else -> fail("HTTP ${r.code}", callback)
+                    }
+                }
+            } catch (e: IOException) {
+                fail("Network error: ${e.message}", callback)
+            } finally {
+                resolving = false
+            }
+        }.start()
+    }
+
+    private fun getTryDetailsAsync(callback: SDDLCallback) {
+        Thread {
+            try {
+                getTryDetailsSync(callback)
+            } finally {
+                resolving = false
+            }
+        }.start()
+    }
+
+    private fun getTryDetailsSync(callback: SDDLCallback) {
+        try {
+            val req = Request.Builder().url("https://sddl.me/api/try/details").build()
+            client.newCall(req).execute().use { r ->
+                if (r.isSuccessful) {
+                    success(r, callback)
+                } else {
+                    fail("TRY ${r.code}", callback)
+                }
+            }
+        } catch (e: IOException) {
+            fail("Network error: ${e.message}", callback)
         }
     }
 
-    private fun fetchTryDetails(callback: SDDLCallback) {
-        val tryUrl = "https://sddl.me/api/try/details"
-        val client = OkHttpClient()
-        val request = Request.Builder().url(tryUrl).build()
-
-        Thread {
-            try {
-                client.newCall(request).execute().use { response ->
-                    if (response.isSuccessful) {
-                        val body = response.body?.string().orEmpty()
-                        val json = JsonParser.parseString(body).asJsonObject
-                        Handler(Looper.getMainLooper()).post {
-                            callback.onSuccess(json)
-                        }
-                    } else {
-                        Handler(Looper.getMainLooper()).post {
-                            callback.onError("Try/details failed: ${response.code}")
-                        }
-                    }
-                }
-            } catch (e: IOException) {
-                Handler(Looper.getMainLooper()).post {
-                    callback.onError("Network error: ${e.message}")
-                }
-            }
-        }.start()
+    private fun success(r: Response, callback: SDDLCallback) {
+        val body = r.body?.string().orEmpty()
+        try {
+            val el = JsonParser.parseString(body)
+            val json = if (el.isJsonObject) el.asJsonObject else JsonObject()
+            mainHandler.post { callback.onSuccess(json) }
+        } catch (e: Exception) {
+            mainHandler.post { callback.onError("Parse error: ${e.message ?: "invalid JSON"}") }
+        }
     }
 
-    private fun proceedWithRequest(id: String, callback: SDDLCallback) {
-        val url = "https://sddl.me/api/$id/details"
-        val client = OkHttpClient()
-        val request = Request.Builder().url(url).build()
-
-        Thread {
-            try {
-                client.newCall(request).execute().use { response ->
-                    if (response.isSuccessful) {
-                        val body = response.body?.string().orEmpty()
-                        val json = JsonParser.parseString(body).asJsonObject
-                        Handler(Looper.getMainLooper()).post {
-                            callback.onSuccess(json)
-                        }
-                    } else {
-                        Handler(Looper.getMainLooper()).post {
-                            fetchTryDetails(callback)
-                        }
-                    }
-                }
-            } catch (e: IOException) {
-                Handler(Looper.getMainLooper()).post {
-                    callback.onError("Network error: ${e.message}")
-                }
-            }
-        }.start()
+    private fun fail(msg: String, callback: SDDLCallback) {
+        mainHandler.post { callback.onError(msg) }
     }
 }

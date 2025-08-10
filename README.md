@@ -121,47 +121,24 @@ Certificate fingerprints:
 ### **MainActivity.kt:**
 
 ```kotlin
-package com.simplelink.myapplication
-
-import android.content.Intent
-import android.net.Uri
-import android.os.Bundle
-import android.util.Log
-import androidx.activity.ComponentActivity
-import com.google.gson.JsonObject
-import com.simplelink.sddl_sdk.SDDLSDK
-
 class MainActivity : ComponentActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        handleIncomingIntent(intent)
+        SDDLHelper.resolve(this, intent, ::routeWith, ::handleDeepLinkError)
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        handleIncomingIntent(intent)
+        SDDLHelper.resolve(this, intent, ::routeWith, ::handleDeepLinkError)
     }
 
-    private fun handleIncomingIntent(intent: Intent) {
-        val data: Uri? = intent.data
-        if (data != null) {
-            Log.d("AppLinkTest", "Received URL: ${data.toString()}")
-            SDDLSDK.fetchDetails(
-                context = this,
-                data = data,
-                callback = object : SDDLSDK.SDDLCallback {
-                    override fun onSuccess(data: JsonObject) {
-                        Log.d("SDDLSDK", "Fetched Data: $data")
-                    }
+    private fun routeWith(payload: JsonObject) {
+        // do stuff
+    }
 
-                    override fun onError(error: String) {
-                        Log.e("SDDLSDK", "Error: $error")
-                    }
-                }
-            )
-        } else {
-            Log.d("AppLinkTest", "No URL received")
-        }
+    private fun handleDeepLinkError(error: String) {
+        // handle Error
     }
 }
 ```
