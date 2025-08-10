@@ -56,14 +56,13 @@ object SDDLSDK {
         if (fromUrl != null) return fromUrl
 
         val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-
-        val clipText = cm.primaryClip?.takeIf { it.itemCount > 0 }
-            ?.getItemAt(0)
+        val clip = cm.primaryClip?.getItemAt(0)
             ?.coerceToText(context)
             ?.toString()
             ?.trim()
+            .orEmpty()
 
-        return clipText?.takeIf { isValidId(it) }
+        return clip.takeIf { isValidId(it) }
     }
 
     private fun isValidId(s: String): Boolean {
