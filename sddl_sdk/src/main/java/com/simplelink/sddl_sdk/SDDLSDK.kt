@@ -34,6 +34,8 @@ object SDDLSDK {
             .build()
     }
 
+    private const val USER_AGENT = "SDDLSDK-Android/1.0"
+
     fun fetchDetails(context: Context, data: Uri? = null, callback: SDDLCallback) {
         synchronized(this) {
             if (resolving) return
@@ -42,9 +44,9 @@ object SDDLSDK {
 
         val id = extractIdentifier(context, data)
         if (id != null) {
-            getDetailsAsync(id, callback)
+            getDetailsAsync(context, id, callback)
         } else {
-            getTryDetailsAsync(callback)
+            getTryDetailsAsync(context, callback)
         }
     }
 
@@ -69,15 +71,27 @@ object SDDLSDK {
         return s.length in 4..64 && s.matches(Regex("^[A-Za-z0-9_-]+$"))
     }
 
-    private fun getDetailsAsync(id: String, callback: SDDLCallback) {
+    // -- Networking -----------------------------------------------------------
+
+    private fun addCommonHeaders(builder: Request.Builder, context: Context): Request.Builder {
+        builder.header("User-Agent", USER_AGENT)
+        builder.header("X-Device-Platform", "Android")
+        val pkg = context.packageName
+        if (!pkg.isNullOrBlank()) {
+            builder.header("X-App-Identifier", pkg)
+        }
+        return builder
+    }
+
+    private fun getDetailsAsync(context: Context, id: String, callback: SDDLCallback) {
         Thread {
             try {
                 val url = "https://sddl.me/api/$id/details"
-                val req = Request.Builder().url(url).build()
+                val req = addCommonHeaders(Request.Builder().url(url), context).build()
                 client.newCall(req).execute().use { r ->
                     when {
                         r.isSuccessful -> success(r, callback)
-                        r.code == 404 || r.code == 410 -> getTryDetailsSync(callback)
+                        r.code == 404 || r.code == 410 -> getTryDetailsSync(context, callback)
                         else -> fail("HTTP ${r.code}", callback)
                     }
                 }
@@ -89,19 +103,23 @@ object SDDLSDK {
         }.start()
     }
 
-    private fun getTryDetailsAsync(callback: SDDLCallback) {
+    private fun getTryDetailsAsync(context: Context, callback: SDDLCallback) {
         Thread {
             try {
-                getTryDetailsSync(callback)
+                getTryDetailsSync(context, callback)
             } finally {
                 resolving = false
             }
         }.start()
     }
 
-    private fun getTryDetailsSync(callback: SDDLCallback) {
+    private fun getTryDetailsSync(context: Context, callback: SDDLCallback) {
         try {
-            val req = Request.Builder().url("https://sddl.me/api/try/details").build()
+            val req = addCommonHeaders(
+                Request.Builder().url("https://sddl.me/api/try/details"),
+                context
+            ).build()
+
             client.newCall(req).execute().use { r ->
                 if (r.isSuccessful) {
                     success(r, callback)
