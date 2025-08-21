@@ -1,5 +1,6 @@
 package com.simplelink.sddl_sdk
 
+import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.net.Uri
@@ -35,43 +36,64 @@ object SDDLSDK {
     }
 
     private const val USER_AGENT = "SDDLSDK-Android/1.0"
+    private const val CLIPBOARD_TRIES = 3
+    private const val CLIPBOARD_INTERVAL_MS = 150L
 
-    fun fetchDetails(context: Context, data: Uri? = null, callback: SDDLCallback) {
+    @JvmOverloads
+    fun fetchDetails(context: Context, data: Uri? = null, callback: SDDLCallback, readClipboard: Boolean = true) {
         synchronized(this) {
             if (resolving) return
             resolving = true
         }
 
-        val id = extractIdentifier(context, data)
-        if (id != null) {
-            getDetailsAsync(context, id, callback)
+        val idFromUrl = data?.pathSegments?.firstOrNull()?.takeIf { isValidId(it) }
+        if (idFromUrl != null) {
+            getDetailsAsync(context, idFromUrl, callback)
+            return
+        }
+
+        if (readClipboard) {
+            tryReadClipboardThenResolve(context, callback)
         } else {
             getTryDetailsAsync(context, callback)
         }
     }
 
-    private fun extractIdentifier(context: Context, data: Uri?): String? {
-        val fromUrl = data
-            ?.pathSegments
-            ?.firstOrNull()
-            ?.takeIf { isValidId(it) }
-        if (fromUrl != null) return fromUrl
+    private fun tryReadClipboardThenResolve(context: Context, callback: SDDLCallback) {
+        var attempts = 0
 
+        fun attempt() {
+            val key = readClipboardKeySafe(context)
+            if (key != null) {
+                getDetailsAsync(context, key, callback)
+                return
+            }
+            attempts++
+            if (attempts < CLIPBOARD_TRIES) {
+                mainHandler.postDelayed({ attempt() }, CLIPBOARD_INTERVAL_MS)
+            } else {
+                getTryDetailsAsync(context, callback)
+            }
+        }
+
+        attempt()
+    }
+
+    private fun readClipboardKeySafe(context: Context): String? {
         val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        val clip = cm.primaryClip?.getItemAt(0)
+        val clip: ClipData = cm.primaryClip ?: return null
+        if (clip.itemCount <= 0) return null
+        val text = clip.getItemAt(0)
             ?.coerceToText(context)
             ?.toString()
             ?.trim()
             .orEmpty()
-
-        return clip.takeIf { isValidId(it) }
+        return text.takeIf { isValidId(it) }
     }
 
     private fun isValidId(s: String): Boolean {
         return s.length in 4..64 && s.matches(Regex("^[A-Za-z0-9_-]+$"))
     }
-
-    // -- Networking -----------------------------------------------------------
 
     private fun addCommonHeaders(builder: Request.Builder, context: Context): Request.Builder {
         builder.header("User-Agent", USER_AGENT)

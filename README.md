@@ -27,11 +27,11 @@ In your app-level `build.gradle.kts`, add the dependency:
 
 ```kotlin
 dependencies {
-    implementation("com.github.nonanerz:sddl-android-sdk:2.0.6")
+    implementation("com.github.nonanerz:sddl-android-sdk:2.0.7")
 }
 ```
 
-> Replace `2.0.6` with the latest release version.
+> Replace `2.0.7` with the latest release version.
 
 ---
 
@@ -125,12 +125,12 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        SDDLHelper.resolve(this, intent, ::routeWith, ::handleDeepLinkError)
+        SDDLHelper.resolve(this, intent, ::routeWith, ::handleDeepLinkError, readClipboard = false)
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        SDDLHelper.resolve(this, intent, ::routeWith, ::handleDeepLinkError)
+        SDDLHelper.resolve(this, intent, ::routeWith, ::handleDeepLinkError, readClipboard = false)
     }
 
     private fun routeWith(payload: JsonObject) {
