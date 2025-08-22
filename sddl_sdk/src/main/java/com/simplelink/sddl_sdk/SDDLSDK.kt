@@ -98,10 +98,27 @@ object SDDLSDK {
     private fun addCommonHeaders(builder: Request.Builder, context: Context): Request.Builder {
         builder.header("User-Agent", USER_AGENT)
         builder.header("X-Device-Platform", "Android")
+
         val pkg = context.packageName
         if (!pkg.isNullOrBlank()) {
             builder.header("X-App-Identifier", pkg)
         }
+
+        val dm = context.resources.displayMetrics
+        val rawW = dm.widthPixels
+        val rawH = dm.heightPixels
+        val dpr = dm.density
+
+        val cssW = kotlin.math.round(rawW / dpr).toInt()
+        val cssH = kotlin.math.round(rawH / dpr).toInt()
+
+        builder.header("X-Client-Screen-Width", cssW.toString())
+        builder.header("X-Client-Screen-Height", cssH.toString())
+        builder.header("X-Client-DPR", dpr.toString())
+        builder.header("X-Client-OS-Version", (android.os.Build.VERSION.RELEASE ?: "Unknown"))
+        builder.header("X-Client-Language", java.util.Locale.getDefault().toLanguageTag())
+        builder.header("X-Client-Timezone", java.util.TimeZone.getDefault().id)
+
         return builder
     }
 
