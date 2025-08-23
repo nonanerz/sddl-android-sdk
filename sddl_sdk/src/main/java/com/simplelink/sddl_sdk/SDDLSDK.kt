@@ -39,8 +39,22 @@ object SDDLSDK {
     private const val CLIPBOARD_TRIES = 3
     private const val CLIPBOARD_INTERVAL_MS = 150L
 
+    private const val PREFS_NAME = "sddl_sdk_prefs"
+    private const val COLD_START_DONE_KEY = "sddl.coldstartDone.v1"
+    private fun isColdStartDone(context: Context): Boolean =
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .getBoolean(COLD_START_DONE_KEY, false)
+    private fun markColdStartDone(context: Context) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit().putBoolean(COLD_START_DONE_KEY, true).apply()
+    }
+
     @JvmOverloads
     fun fetchDetails(context: Context, data: Uri? = null, callback: SDDLCallback, readClipboard: Boolean = true) {
+        if (data == null && isColdStartDone(context)) {
+            return
+        }
+
         synchronized(this) {
             if (resolving) return
             resolving = true
@@ -50,6 +64,10 @@ object SDDLSDK {
         if (idFromUrl != null) {
             getDetailsAsync(context, idFromUrl, callback)
             return
+        }
+
+        if (data == null && !isColdStartDone(context)) {
+            markColdStartDone(context)
         }
 
         if (readClipboard) {
