@@ -55,6 +55,11 @@ object SDDLSDK {
             return
         }
 
+        if (data == null && !isColdStartDone(context)) {
+            InstallReferrerFetcher.fetchOnceAsync(context) { /* no-op */ }
+            markColdStartDone(context)
+        }
+
         synchronized(this) {
             if (resolving) return
             resolving = true
@@ -64,10 +69,6 @@ object SDDLSDK {
         if (idFromUrl != null) {
             getDetailsAsync(context, idFromUrl, callback)
             return
-        }
-
-        if (data == null && !isColdStartDone(context)) {
-            markColdStartDone(context)
         }
 
         if (readClipboard) {
@@ -126,7 +127,6 @@ object SDDLSDK {
         val rawW = dm.widthPixels
         val rawH = dm.heightPixels
         val dpr = dm.density
-
         val cssW = kotlin.math.round(rawW / dpr).toInt()
         val cssH = kotlin.math.round(rawH / dpr).toInt()
 
@@ -136,6 +136,20 @@ object SDDLSDK {
         builder.header("X-Client-OS-Version", (android.os.Build.VERSION.RELEASE ?: "Unknown"))
         builder.header("X-Client-Language", java.util.Locale.getDefault().toLanguageTag())
         builder.header("X-Client-Timezone", java.util.TimeZone.getDefault().id)
+
+        InstallReferrerFetcher.readCached(context)?.let { r ->
+            builder.header("X-Install-Referrer", r.raw)
+            if (r.clickTsSec > 0)   builder.header("X-Referrer-Click-Ts", r.clickTsSec.toString())
+            if (r.installBeginTsSec > 0) builder.header("X-Install-Begin-Ts", r.installBeginTsSec.toString())
+
+            r.params["utm_source"]?.let { builder.header("X-UTM-Source", it) }
+            r.params["utm_medium"]?.let { builder.header("X-UTM-Medium", it) }
+            r.params["utm_campaign"]?.let { builder.header("X-UTM-Campaign", it) }
+            r.params["utm_term"]?.let { builder.header("X-UTM-Term", it) }
+            r.params["utm_content"]?.let { builder.header("X-UTM-Content", it) }
+            r.params["gclid"]?.let { builder.header("X-GCLID", it) }
+            (r.params["sddl"] ?: r.params["sddl_id"])?.let { builder.header("X-SDDL-ID", it) }
+        }
 
         return builder
     }
