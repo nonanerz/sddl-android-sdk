@@ -56,7 +56,6 @@ object SDDLSDK {
         }
 
         if (data == null && !isColdStartDone(context)) {
-            InstallReferrerFetcher.fetchOnceAsync(context) { /* no-op */ }
             markColdStartDone(context)
         }
 
@@ -177,6 +176,7 @@ object SDDLSDK {
     private fun getTryDetailsAsync(context: Context, callback: SDDLCallback) {
         Thread {
             try {
+                waitReferrerIfNeeded(context)
                 getTryDetailsSync(context, callback)
             } finally {
                 resolving = false
@@ -216,5 +216,14 @@ object SDDLSDK {
 
     private fun fail(msg: String, callback: SDDLCallback) {
         mainHandler.post { callback.onError(msg) }
+    }
+
+    private fun waitReferrerIfNeeded(context: Context, maxWaitMs: Long = 350L) {
+        if (InstallReferrerFetcher.readCached(context) != null) return
+        val latch = java.util.concurrent.CountDownLatch(1)
+        try {
+            InstallReferrerFetcher.fetchOnceAsync(context) { latch.countDown() }
+            latch.await(maxWaitMs, TimeUnit.MILLISECONDS)
+        } catch (_: Throwable) { /* ignore */ }
     }
 }
