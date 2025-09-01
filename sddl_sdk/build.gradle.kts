@@ -44,9 +44,13 @@ tasks.register("dokkaJavadocJar", Jar::class) {
 }
 
 dependencies {
+    api("androidx.activity:activity-ktx:1.9.2")
+
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
+    implementation("com.android.installreferrer:installreferrer:2.2")
 
     implementation("com.google.code.gson:gson:2.8.9")
     implementation("androidx.core:core-ktx:1.7.0")
